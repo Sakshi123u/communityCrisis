@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for role authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isCitizen() {
+      return isAuthenticated() && (getUserData().role == 'CITIZEN' || request.auth.token.role == 'CITIZEN');
+    }
+
+    function isAuthority() {
+      return isAuthenticated() && (getUserData().role == 'AUTHORITY' || request.auth.token.role == 'AUTHORITY');
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (getUserData().role == 'ADMIN' || request.auth.token.role == 'ADMIN');
+    }
+
+    // User Profiles - prevent users from modifying their own role!
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.uid == userId && 
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Incidents Collection
+    match /incidents/{incidentId} {
+      // Citizens, Authority, Admin can read public incident data
+      allow read: if isAuthenticated();
+      // Citizens can create incident reports
+      allow create: if isAuthenticated();
+      // Only Authority or Admin can update incident status, assignment, or override priority
+      allow update: if isAuthority() || isAdmin();
+      allow delete: if isAdmin();
+
+      // Internal Notes Subcollection - Restricted from Citizens
+      match /internalNotes/{noteId} {
+        allow read, write: if isAuthority() || isAdmin();
+      }
+    }
+
+    // Departments Collection - Admin managed
+    match /departments/{deptId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Knowledge Base Collection - Admin managed
+    match /knowledge/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Audit Logs Collection - Authority/Admin read, Admin write, Citizens forbidden
+    match /auditLogs/{logId} {
+      allow read: if isAuthority() || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Platform Settings - Admin only
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Community Crisis Intelligence Platform",
+  "description": "AI-powered civic issue reporting, crisis intelligence, and authority response system.",
+  "requestFramePermissions": ["microphone", "camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
