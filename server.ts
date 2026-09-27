@@ -1389,9 +1389,9 @@ Return JSON strictly with the following schema:
     const { imageBase64 } = req.body;
     const ai = getGeminiClient();
 
-    if (!ai) {
+    if (!ai || !imageBase64) {
       return res.json({
-        extractedText: "NOTICE OF MUNICIPAL WORKS / CIVIC HAZARD INSPECTION. Details logged for authority verification.",
+        extractedText: "",
       });
     }
 
@@ -1412,7 +1412,7 @@ Return JSON strictly with the following schema:
                   },
                 },
                 {
-                  text: "Perform OCR on this image/document. Extract all visible text, notice numbers, addresses, dates, and key problem descriptions accurately.",
+                  text: "Perform OCR on this image/document. Extract visible text accurately. If there is no legible text or if it is just a photo without text, respond with nothing.",
                 },
               ],
             },
@@ -1424,14 +1424,10 @@ Return JSON strictly with the following schema:
         }
       }
 
-      if (!extracted) {
-        extracted = "DOCUMENT / PHOTO RECORD VERIFIED: Visual evidence captured and attached to incident report.";
-      }
-
       res.json({ extractedText: extracted });
     } catch (err: any) {
       res.json({
-        extractedText: "DOCUMENT / PHOTO RECORD VERIFIED: Visual evidence captured and attached to incident report.",
+        extractedText: "",
       });
     }
   });

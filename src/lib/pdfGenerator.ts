@@ -77,7 +77,12 @@ export function generateIncidentPDF(incident: Incident) {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(51, 65, 85);
-  const splitDesc = doc.splitTextToSize(incident.description, 180);
+  // Strip any legacy OCR tags if present in older records
+  const cleanDescription = (incident.description || '')
+    .replace(/\[Extracted OCR Document Text\]:[\s\S]*$/i, '')
+    .replace(/\[Extracted OCR Document Text\]:[^\n]*/gi, '')
+    .trim() || 'No additional description provided.';
+  const splitDesc = doc.splitTextToSize(cleanDescription, 180);
   doc.text(splitDesc, 15, y);
   y += splitDesc.length * 5 + 8;
 

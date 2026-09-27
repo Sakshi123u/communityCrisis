@@ -8,10 +8,13 @@ import {
   ArrowUpRight,
   SlidersHorizontal,
   MapPin,
-  Crosshair,
   Sparkles,
   ShieldAlert,
-  AlertCircle
+  AlertCircle,
+  Search,
+  Filter,
+  Calendar,
+  Layers
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -28,20 +31,34 @@ export const PriorityQueue: React.FC<Props> = ({
   incidents,
   onSelectIncident,
   onOverridePriority,
-  onLocateIncident,
   selectedIncidentId,
   compact = false,
 }) => {
-  const { t, translateIncident, translateCategory } = useLanguage();
+  const { t, translateIncident, translateCategory, translateDepartment } = useLanguage();
   const [overrideModalIncident, setOverrideModalIncident] = useState<Incident | null>(null);
   const [overrideScore, setOverrideScore] = useState<number>(85);
   const [overrideReason, setOverrideReason] = useState<string>('');
+  const [searchFilter, setSearchFilter] = useState<string>('');
+  const [severityFilter, setSeverityFilter] = useState<string>('ALL');
 
-  // Sort active incidents by priorityScore desc and translate (exclude resolved)
+  // Filter active incidents by priorityScore desc and translate (exclude resolved)
   const list = (Array.isArray(incidents) ? incidents : []).filter((i) => i.status !== 'RESOLVED');
   const sortedQueue = [...list]
     .sort((a, b) => b.priorityScore - a.priorityScore)
-    .map((item) => translateIncident(item));
+    .map((item) => translateIncident(item))
+    .filter((inc) => {
+      if (severityFilter !== 'ALL' && inc.severity !== severityFilter) return false;
+      if (searchFilter.trim()) {
+        const q = searchFilter.toLowerCase();
+        return (
+          inc.title.toLowerCase().includes(q) ||
+          inc.incidentNumber.toLowerCase().includes(q) ||
+          inc.location?.address.toLowerCase().includes(q) ||
+          inc.category.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
 
   const handleApplyOverride = () => {
     if (!overrideModalIncident) return;
@@ -56,29 +73,64 @@ export const PriorityQueue: React.FC<Props> = ({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-1">
+      {/* Header & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div>
           <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center">
             <Flame className="w-5 h-5 text-red-500 mr-2 shrink-0 animate-pulse" />
             AI Priority Dispatch Queue
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Ranked by multi-factor algorithmic risk assessment and vulnerability scoring.
+            Automated ranking based on multi-factor algorithmic risk assessment, urgency, and vulnerability metrics.
           </p>
         </div>
-        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900">
-          {sortedQueue.length} Active
-        </span>
+        <div className="flex items-center space-x-2">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900">
+            {sortedQueue.length} Active in Queue
+          </span>
+        </div>
       </div>
+
+      {/* Filter / Search Bar (especially beneficial when full-width) */}
+      {!compact && (
+        <div className="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              placeholder="Search queue by ID, keyword, address..."
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center space-x-1.5 w-full sm:w-auto overflow-x-auto">
+            <span className="text-[11px] font-bold text-slate-400 uppercase mr-1 whitespace-nowrap">Filter Severity:</span>
+            {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((lvl) => (
+              <button
+                key={lvl}
+                onClick={() => setSeverityFilter(lvl)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                  severityFilter === lvl
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {lvl}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Incident List */}
       <div className="space-y-3">
         {sortedQueue.length === 0 ? (
-          <div className="p-8 text-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
+          <div className="p-10 text-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
             <AlertCircle className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">No active incidents in queue</h4>
-            <p className="text-xs text-slate-500">All submitted reports have been triaged or resolved.</p>
+            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">No active incidents matching criteria</h4>
+            <p className="text-xs text-slate-500 mt-1">All reports are triaged, resolved, or excluded by your current filter.</p>
           </div>
         ) : (
           sortedQueue.map((inc, rank) => {
@@ -113,6 +165,11 @@ export const PriorityQueue: React.FC<Props> = ({
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                       {translateCategory(inc.category)}
                     </span>
+                    {inc.assignedDepartmentName && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900">
+                        {translateDepartment(inc.assignedDepartmentName)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-1.5 shrink-0">
@@ -120,13 +177,10 @@ export const PriorityQueue: React.FC<Props> = ({
                   </div>
                 </div>
 
-                {/* 2. Title & Address (Clean 2-line clamp, never cut off into single words) */}
+                {/* 2. Title & Address */}
                 <div className="mb-3">
                   <h4
-                    onClick={() => {
-                      if (onLocateIncident) onLocateIncident(inc);
-                      else onSelectIncident(inc);
-                    }}
+                    onClick={() => onSelectIncident(inc)}
                     className="font-bold text-sm text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors leading-snug line-clamp-2"
                     title={inc.title}
                   >
@@ -138,8 +192,8 @@ export const PriorityQueue: React.FC<Props> = ({
                   </p>
                 </div>
 
-                {/* 3. Full-width Risk Factors Breakdown (only in expanded mode) */}
-                {!compact && inc.priorityFactors && (
+                {/* 3. Full-width Risk Factors Breakdown */}
+                {inc.priorityFactors && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] mb-3">
                     <div>
                       <span className="text-slate-400 block text-[10px]">Severity Factor</span>
@@ -175,17 +229,6 @@ export const PriorityQueue: React.FC<Props> = ({
 
                   {/* Actions */}
                   <div className="flex items-center space-x-1.5 shrink-0">
-                    {onLocateIncident && (
-                      <button
-                        onClick={() => onLocateIncident(inc)}
-                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold inline-flex items-center transition-colors cursor-pointer"
-                        title="Center on Command Map"
-                      >
-                        <Crosshair className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                        Map
-                      </button>
-                    )}
-
                     <button
                       onClick={() => {
                         setOverrideModalIncident(inc);
@@ -199,9 +242,9 @@ export const PriorityQueue: React.FC<Props> = ({
 
                     <button
                       onClick={() => onSelectIncident(inc)}
-                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs inline-flex items-center shadow-xs transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs inline-flex items-center shadow-xs transition-colors cursor-pointer"
                     >
-                      Triage <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
+                      Triage & Dispatch <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
                     </button>
                   </div>
                 </div>

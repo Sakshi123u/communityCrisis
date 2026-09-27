@@ -173,16 +173,16 @@ export const ReportWizard: React.FC<Props> = ({ isOpen, onClose, onSubmitSuccess
       };
       setMediaList((prev) => [...prev, newMedia]);
 
-      // If PDF or image text document, trigger OCR text extraction
-      if (file.type.includes('pdf') || file.type.includes('image')) {
-        runOCRExtraction(base64);
+      // If PDF document, trigger optional OCR text extraction attached to media record
+      if (file.type.includes('pdf')) {
+        runOCRExtraction(base64, newMedia.id);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // OCR extraction helper call
-  const runOCRExtraction = async (base64Data: string) => {
+  // OCR extraction helper call: preserves citizen's description and attaches text to media item
+  const runOCRExtraction = async (base64Data: string, mediaId?: string) => {
     setOcrProcessing(true);
     try {
       const res = await fetch('/api/ai/ocr', {
@@ -191,8 +191,10 @@ export const ReportWizard: React.FC<Props> = ({ isOpen, onClose, onSubmitSuccess
         body: JSON.stringify({ imageBase64: base64Data })
       });
       const data = await res.json();
-      if (data.extractedText) {
-        setDescription((prev) => prev ? `${prev}\n\n[Extracted OCR Document Text]: ${data.extractedText}` : `[Extracted OCR Document Text]: ${data.extractedText}`);
+      if (data.extractedText && data.extractedText.trim() && mediaId) {
+        setMediaList((prev) =>
+          prev.map((m) => (m.id === mediaId ? { ...m, extractedText: data.extractedText.trim() } : m))
+        );
       }
     } catch (e) {
       console.error('OCR Error:', e);

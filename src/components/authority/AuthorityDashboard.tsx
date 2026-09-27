@@ -3,7 +3,6 @@ import { Incident, Department } from '../../types';
 import { SeverityBadge } from '../common/SeverityBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { NotifiedBadge } from '../common/NotifiedBadge';
-import { MapViewer } from '../common/MapViewer';
 import { PriorityQueue } from './PriorityQueue';
 import { AnalyticsView } from './AnalyticsView';
 import { AuthorityManagementModal } from './AuthorityManagementModal';
@@ -22,7 +21,6 @@ import {
   Clock,
   AlertTriangle,
   ArrowUpRight,
-  MapPin,
   FileText,
   Activity
 } from 'lucide-react';
@@ -42,9 +40,8 @@ export const AuthorityDashboard: React.FC<Props> = ({
 }) => {
   const { t, translateIncident, translateCategory, translateDepartment } = useLanguage();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'COMMAND' | 'TABLE' | 'PRIORITY' | 'ANALYTICS'>('COMMAND');
+  const [activeTab, setActiveTab] = useState<'PRIORITY' | 'TABLE' | 'ANALYTICS'>('PRIORITY');
   const [selectedIncidentForManage, setSelectedIncidentForManage] = useState<Incident | null>(null);
-  const [selectedIncidentForMap, setSelectedIncidentForMap] = useState<string | undefined>(undefined);
 
   // Filter states for Table
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,41 +109,36 @@ export const AuthorityDashboard: React.FC<Props> = ({
               Municipal Incident Command Center
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Real-time AI triage routing, geospatial hazard mapping, and municipal emergency dispatch.
+              Real-time AI triage routing, automated risk prioritization, and municipal emergency dispatch.
             </p>
           </div>
 
           <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shrink-0">
             <button
-              onClick={() => setActiveTab('COMMAND')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'COMMAND' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Command Map & Triage
-            </button>
-            <button
               onClick={() => setActiveTab('PRIORITY')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center ${
                 activeTab === 'PRIORITY' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
+              <Flame className="w-3.5 h-3.5 mr-1.5 text-red-400" />
               Priority Queue
             </button>
             <button
               onClick={() => setActiveTab('TABLE')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center ${
                 activeTab === 'TABLE' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
               Incident Records
             </button>
             <button
               onClick={() => setActiveTab('ANALYTICS')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center ${
                 activeTab === 'ANALYTICS' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
               Analytics
             </button>
           </div>
@@ -205,51 +197,11 @@ export const AuthorityDashboard: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* TAB 1: COMMAND CENTER (EXPANSIVE MAP + ADAPTIVE DISPATCH FEED) */}
-        {activeTab === 'COMMAND' && (
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            {/* Left Main (7 columns): Geospatial Incident Command Map */}
-            <div className="xl:col-span-7">
-              <MapViewer
-                incidents={incidents}
-                selectedIncidentId={selectedIncidentForMap}
-                onSelectIncident={(inc) => {
-                  setSelectedIncidentForMap(inc.id);
-                  setSelectedIncidentForManage(inc);
-                }}
-                height="560px"
-              />
-            </div>
-
-            {/* Right Side (5 columns): AI Priority Dispatch Feed */}
-            <div className="xl:col-span-5">
-              <PriorityQueue
-                incidents={incidents}
-                compact={true}
-                selectedIncidentId={selectedIncidentForMap}
-                onLocateIncident={(inc) => {
-                  setSelectedIncidentForMap(inc.id);
-                }}
-                onSelectIncident={(inc) => {
-                  setSelectedIncidentForMap(inc.id);
-                  setSelectedIncidentForManage(inc);
-                }}
-                onOverridePriority={handlePriorityOverride}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: PRIORITY QUEUE FULL EXPANDED VIEW */}
+        {/* TAB 1: PRIORITY DISPATCH QUEUE */}
         {activeTab === 'PRIORITY' && (
           <PriorityQueue
             incidents={incidents}
             compact={false}
-            selectedIncidentId={selectedIncidentForMap}
-            onLocateIncident={(inc) => {
-              setSelectedIncidentForMap(inc.id);
-              setActiveTab('COMMAND');
-            }}
             onSelectIncident={(inc) => setSelectedIncidentForManage(inc)}
             onOverridePriority={handlePriorityOverride}
           />

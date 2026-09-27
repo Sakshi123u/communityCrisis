@@ -32,7 +32,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li><span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">{t('reportAnIssue')}</span></li>
               <li><span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">{t('howItWorks')}</span></li>
-              <li><span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">{t('interactiveMap', 'Interactive Incident Map')}</span></li>
+              <li><span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">{t('priorityTriage', 'Priority Triage Queue')}</span></li>
               <li><span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">{t('civicKnowledgeBase', 'Civic Knowledge Base')}</span></li>
             </ul>
           </div>
